@@ -1,21 +1,26 @@
 import vyavast
+import pretty
+
+var root = LayoutNode(
+  bounds: bounds(
+    100, 100
+  ),
+  children: @[
+    LayoutNode(
+      newLayoutTextNode("Hello vyavast!")
+    ),
+    LayoutNode(
+      newLayoutTextNode("This is another text label")
+    )
+  ]
+)
 
 let solver = newLayoutSolver(
-  vec2(640, 480) # window dimensions
-)
-
-let id = solver.addNode(
-  Node(
-    scale: vec2(30, 30),
-    opts: NodeOpts(
-      moves: false,   # if this node will never move, we can apply special optimizations to it by marking it as non-dynamic. 
-                      # ('move' here excludes normal moving like resizing of the viewport)
-      scales: false   # same as above but for scaling (changing dimensions) like for static content
-    )
+  root,
+  vec2(
+    1280, 720
   )
 )
-
 solver.solve()
 
-let n1Pos = solver.getPosition(id)
-echo n1Pos
+print root

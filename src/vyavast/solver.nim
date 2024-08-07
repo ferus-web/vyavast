@@ -1,51 +1,48 @@
-import std/options
-import vmath
-import ./[
-  node, margins, paddings
-]
+import std/[logging]
+import ./[node, units]
+import pretty
 
 type
   LayoutSolver* = ref object
-    viewport*: Vec2
-    nodes*: seq[Node]
+    root: LayoutNode
+    viewport: Vec2
 
-proc addNode*(
-  solver: LayoutSolver,
-  node: Node
-): int {.inline.} =
-  solver.nodes.add(node)
-  solver.nodes.len - 1
+    overflowing*: bool
 
-proc solve*(
-  solver: LayoutSolver
-) =
+proc solve*(solver: LayoutSolver, node: LayoutNode, x, y: var float) =
+  node.computedPos = vec2(x, y)
+  
+  var 
+    cx = x #x + node.padding
+    cy = y + node.padding
+
+  for i, _ in node.children:
+    node.children[i].computedPos = vec2(cx, cy)
+    
+    cy += node.children[i].bounds.h + node.children[i].margin + node.padding
+
+    solver.solve(node.children[i], cx, cy)
+
+  x += node.bounds.w
+  #y += node.bounds.h
+  
+proc solve*(solver: LayoutSolver) =
+  let bounds = solver.root.calculateFinalBounds()
+
+  if bounds.max.w > solver.viewport.x:
+    warn "solver: root layout node is overflowing beyond the viewport dimensions on the X axis - things might look wonky!"
+    solver.overflowing = true
+
+  if bounds.max.h > solver.viewport.y:
+    warn "solver: root layout node is overflowing beyond the viewport dimensions on the Y axis - extending viewport vertically to accomodate"
+    solver.viewport.y = bounds.max.h
+  
   var
-    posX: float32
-    posY: float32
+    x = solver.root.padding
+    y: float
+  
+  for i, _ in solver.root.children:
+    solver.solve(solver.root.children[i], x, y)
 
-  for i, _ in solver.nodes:
-    var lnode = solver.nodes[i]
-
-    case lnode.kind
-    of dkBlock:
-      let
-        horizMargin = lnode.margin.left + lnode.margin.right
-        vertMargin = lnode.margin.top + lnode.margin.bottom
-
-      posX += lnode.scale.x + horizMargin
-      posY += lnode.scale.y + vertMargin
-
-      lnode.computed = some vec2(
-        0, posY
-      )
-    else: discard
-
-proc getPosition*(solver: LayoutSolver, id: int): Option[Vec2] {.inline.} =
-  solver.nodes[id].computed
-
-proc newLayoutSolver*(viewport: Vec2): LayoutSolver {.inline.} =
-  LayoutSolver(
-    viewport: viewport
-  )
-
-export vmath
+proc newLayoutSolver*(root: LayoutNode, viewport: Vec2): LayoutSolver {.inline.} =
+  LayoutSolver(root: root, viewport: viewport)

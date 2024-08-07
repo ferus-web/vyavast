@@ -1,34 +1,37 @@
 # requires ferusgfx and windy to work!
 # `nimble install https://github.com/ferus-web/ferusgfx`
-import std/[options, sugar]
+import std/[options, sugar, random]
 import vyavast, ferusgfx, windy, opengl
+import pretty
 
-const
-  ViewportDims* = (
-    width: 1080f,
-    height: 720f
+var root = LayoutNode(
+  bounds: bounds(
+    100, 100
+  ),
+  padding: 1,
+  margin: 1,
+  children: @[
+    LayoutNode(
+      newLayoutTextNode("Hello vyavast!")
+    ),
+    LayoutNode(
+      newLayoutTextNode("This is another text label")
+    )
+  ]
+)
+
+let solver = newLayoutSolver(
+  root,
+  vec2(
+    1280, 720
   )
+)
+solver.solve()
+
+print root
 
 proc main =
-  let nodes = collect:
-    for _ in 0..32:
-      Node(
-        scale: vec2(30, 30),
-        opts: NodeOpts(
-          moves: false,
-          scales: false
-        )
-      )
-
-  var solver = newLayoutSolver(
-    vec2(ViewportDims.width, ViewportDims.height)
-  )
-
-  let ids = collect:
-    for node in nodes:
-      solver.addNode(node)
-
-  solver.solve()
+  randomize()
 
   let window = newWindow("Vyavast Layout Solver", ivec2(1080, 720))
   window.makeContextCurrent()
@@ -53,12 +56,14 @@ proc main =
 
   var displayList = newDisplayList(addr scene)
 
-  for id in ids:
-    let content = "TextNode #" & $id
+  for node in root.children:
+    let casted = vyavast.TextNode(node)
+    if casted.content == "": continue
+
     displayList.add(
       newTextNode(
-        content,
-        solver.getPosition(id).get(),
+        casted.content,
+        casted.computedPos,
         scene.fontManager
       )
     )

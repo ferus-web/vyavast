@@ -1,35 +1,23 @@
-import std/options
-import vmath
-import ./[
-  margins, paddings
-]
+import std/[algorithm]
+import ./[units]
 
 type
-  NodeOpts* = ref object
-    moves*: bool
-    scales*: bool
+  LayoutNode* = ref object of RootObj
+    bounds*: Bounds
+    children*: seq[LayoutNode]
+    margin*, padding*: float = 1f
 
-  DisplayKind* = enum
-    dkBlock
-    dkInline
-    dkTable
-    dkGrid
-    dkPositioned
-    dkFlex
+    computedPos*: Vec2
 
-  Node* = ref object
-    scale*: Vec2
-    opts*: NodeOpts
+proc collectAllBounds(bounds: var seq[Bounds], node: LayoutNode) {.inline.} =
+  for child in node.children:
+    bounds &= child.bounds
+    bounds.collectAllBounds(child)
 
-    computed*: Option[Vec2]
+proc calculateFinalBounds*(node: LayoutNode): tuple[min, max: Bounds] =
+  var bounds = @[node.bounds]
 
-    margin*: Margin = Margin(top: 4, bottom: 4, left: 4, right: 4)
-    padding*: Padding = Padding(top: 4, bottom: 4, left: 4, right: 4)
-
-    case kind*: DisplayKind
-    of dkPositioned:
-      left*, right*, up*, down*: float32
-    else: discard
-
-proc isFlow*(display: DisplayKind): bool {.inline.} =
-  display == dkBlock or display == dkInline
+  bounds.collectAllBounds(node)
+  sort bounds
+  
+  (min: bounds[0], max: bounds[bounds.len - 1])

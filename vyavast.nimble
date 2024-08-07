@@ -10,3 +10,6 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 2.0.2"
+requires "vmath >= 2.0.0"
+
+requires "bumpy >= 1.1.2"
